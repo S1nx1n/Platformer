@@ -6,6 +6,9 @@ using UnityEngine;
 
 public class Player : MonoBehaviour
 {
+    [Header("VFX")]
+    public GameObject bloodVfx;
+
     [Header("Movement")]
     public float movementSpeed = 10.0f;
     public float jumpHeight = 3;
@@ -14,7 +17,14 @@ public class Player : MonoBehaviour
     public LayerMask groundLayer;
     public Transform groundCheck; //player legs
     public float radius = 0.2f;
-    
+
+    [Header("Jump Mechanics")]
+    public float coyoteTime = 0.2f;
+    public float jumBufferTime = 0.2f;
+
+
+    private float jumpBufferCounter;
+    private float coyoteCounter;
     private bool isGrounded;
     private Rigidbody2D rb;
     public float inputX;
@@ -30,10 +40,31 @@ public class Player : MonoBehaviour
         
         //OverlapCircle - checks circle area for ground objects
         isGrounded = Physics2D.OverlapCircle(groundCheck.position, radius, groundLayer);
-        
-        if (isGrounded && Input.GetButtonDown("Jump"))
+
+        if(isGrounded)
         {
-            var jumpForce = Mathf.Sqrt(-2 * Physics2D.gravity.y * jumpHeight);
+            coyoteCounter = coyoteTime;
+        }
+        else
+        {
+            coyoteCounter -= Time.deltaTime;
+        }
+
+        if (Input.GetButtonDown("Jump"))
+        {
+            jumpBufferCounter = jumBufferTime;
+        }
+        else
+        {
+            jumpBufferCounter -= Time.deltaTime;
+        }
+
+        
+        if (coyoteCounter > 0 && jumpBufferCounter > 0)
+        {
+            jumpBufferCounter = 0;
+
+            var jumpForce = Mathf.Sqrt(-2 * Physics2D.gravity.y * jumpHeight * rb.gravityScale);
             rb.velocity = new Vector2(rb.velocity.x, jumpForce);
         }
     }   
@@ -49,6 +80,14 @@ public class Player : MonoBehaviour
         if (groundCheck != null)
         {
             Gizmos.DrawWireSphere(groundCheck.position, radius);
+        }
+    }
+
+    private void OnCollisionEnter2D(Collision2D other)
+    {
+        if(other.relativeVelocity.magnitude > 25)
+        {
+            Instantiate(bloodVfx, transform.position, Quaternion.identity);
         }
     }
 }
